@@ -131,6 +131,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 add_definitions ("-Wall")
+add_definitions ("-std=c++11")
 
 include_directories(${OpenCV_INCLUDE_DIRS})
 

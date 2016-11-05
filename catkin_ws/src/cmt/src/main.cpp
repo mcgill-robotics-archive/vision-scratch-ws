@@ -1,5 +1,6 @@
 #include "CMT.h"
 #include "gui.h"
+#include "ImageStream.h"
 
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -42,21 +43,6 @@ static string OUT_FILE_COL_HEADERS =
     "Bounding box vertex 2 X (px),Bounding box vertex 2 Y (px),"\
     "Bounding box vertex 3 X (px),Bounding box vertex 3 Y (px),"\
     "Bounding box vertex 4 X (px),Bounding box vertex 4 Y (px)";
-
-vector<float> getNextLineAndSplitIntoFloats(istream& str)
-{
-    vector<float>   result;
-    string                line;
-    getline(str,line);
-
-    stringstream          lineStream(line);
-    string                cell;
-    while(getline(lineStream,cell,','))
-    {
-        result.push_back(atof(cell.c_str()));
-    }
-    return result;
-}
 
 int display(Mat im, CMT & cmt)
 {
@@ -107,7 +93,6 @@ int main(int argc, char **argv)
     Rect rect;
 
     //Parse args
-    int challenge_flag = 0;
     int loop_flag = 0;
     int verbose_flag = 0;
     int bbox_flag = 0;
@@ -129,7 +114,6 @@ int main(int argc, char **argv)
     struct option longopts[] =
     {
         //No-argument options
-        {"challenge", no_argument, &challenge_flag, 1},
         {"loop", no_argument, &loop_flag, 1},
         {"verbose", no_argument, &verbose_flag, 1},
         {"no-scale", no_argument, 0, no_scale_cmd},
@@ -232,91 +216,12 @@ int main(int argc, char **argv)
     FILELog::ReportingLevel() = verbose_flag ? logDEBUG : logINFO;
     Output2FILE::Stream() = stdout; //Log to stdout
 
-    //Challenge mode
-    if (challenge_flag)
-    {
-        //Read list of images
-        ifstream im_file("images.txt");
-        vector<string> files;
-        string line;
-        while(getline(im_file, line ))
-        {
-            files.push_back(line);
-        }
-
-        //Read region
-        ifstream region_file("region.txt");
-        vector<float> coords = getNextLineAndSplitIntoFloats(region_file);
-
-        if (coords.size() == 4) {
-            rect = Rect(coords[0], coords[1], coords[2], coords[3]);
-        }
-
-        else if (coords.size() == 8)
-        {
-            //Split into x and y coordinates
-            vector<float> xcoords;
-            vector<float> ycoords;
-
-            for (size_t i = 0; i < coords.size(); i++)
-            {
-                if (i % 2 == 0) xcoords.push_back(coords[i]);
-                else ycoords.push_back(coords[i]);
-            }
-
-            float xmin = *min_element(xcoords.begin(), xcoords.end());
-            float xmax = *max_element(xcoords.begin(), xcoords.end());
-            float ymin = *min_element(ycoords.begin(), ycoords.end());
-            float ymax = *max_element(ycoords.begin(), ycoords.end());
-
-            rect = Rect(xmin, ymin, xmax-xmin, ymax-ymin);
-            cout << "Found bounding box" << xmin << " " << ymin << " " <<  xmax-xmin << " " << ymax-ymin << endl;
-        }
-
-        else {
-            cerr << "Invalid Bounding box format" << endl;
-            return 0;
-        }
-
-        //Read first image
-        Mat im0 = imread(files[0]);
-        Mat im0_gray;
-        cvtColor(im0, im0_gray, CV_BGR2GRAY);
-
-        //Initialize cmt
-        cmt.initialize(im0_gray, rect);
-
-        //Write init region to output file
-        ofstream output_file("output.txt");
-        output_file << rect.x << ',' << rect.y << ',' << rect.width << ',' << rect.height << std::endl;
-
-        //Process images, write output to file
-        for (size_t i = 1; i < files.size(); i++)
-        {
-            FILE_LOG(logINFO) << "Processing frame " << i << "/" << files.size();
-            Mat im = imread(files[i]);
-            Mat im_gray;
-            cvtColor(im, im_gray, CV_BGR2GRAY);
-            cmt.processFrame(im_gray);
-            if (verbose_flag)
-            {
-                display(im, cmt);
-            }
-            rect = cmt.bb_rot.boundingRect();
-            output_file << rect.x << ',' << rect.y << ',' << rect.width << ',' << rect.height << std::endl;
-        }
-
-        output_file.close();
-
-        return 0;
-    }
-
-    //Normal mode
-
     //Create window
     namedWindow(WIN_NAME);
 
-    VideoCapture cap;
+
+    ImageStream cap;
+    //VideoCapture cap;
 
     bool show_preview = true;
 

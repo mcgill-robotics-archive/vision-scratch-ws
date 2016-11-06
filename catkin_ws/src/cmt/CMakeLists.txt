@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(cmt)
 
+find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+	roscpp
+	std_msgs
+	sensor_msgs
+	image_transport
+)
+
+include_directories(${catkin_INCLUDE_DIRS})
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -122,8 +132,6 @@ catkin_package(
 
 ## Declare a C++ executable
 
-cmake_minimum_required (VERSION 2.6)
-
 find_package(OpenCV REQUIRED)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -138,12 +146,14 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 file( GLOB CMT_SRC 
 	src/*.cpp 
 	src/fastcluster/*.cpp 
-	src/logging/*.cpp )
+	src/logging/*.cpp
+    src/cv_bridge/*.cpp)
 
 file( GLOB CMT_HEADERS 
     src/*.h 
     src/fastcluster/*.h 
-    src/logging/*.h)
+    src/logging/*.h
+    src/cv_bridge/*.h)
 
 add_executable(cmt_node ${CMT_SRC} ${CMT_HEADERS})
 
@@ -151,12 +161,12 @@ target_link_libraries(cmt_node ${OpenCV_LIBS})
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(cmt_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(cmt_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(cmt_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(cmt_node
+   ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##

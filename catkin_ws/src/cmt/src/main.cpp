@@ -2,6 +2,9 @@
 #include "gui.h"
 #include "ImageStream.h"
 
+// ROS Configuration
+#include <ros/ros.h>
+
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
@@ -43,6 +46,7 @@ static string OUT_FILE_COL_HEADERS =
     "Bounding box vertex 2 X (px),Bounding box vertex 2 Y (px),"\
     "Bounding box vertex 3 X (px),Bounding box vertex 3 Y (px),"\
     "Bounding box vertex 4 X (px),Bounding box vertex 4 Y (px)";
+
 
 int display(Mat im, CMT & cmt)
 {
@@ -110,6 +114,7 @@ int main(int argc, char **argv)
     const int skip_cmd = 1005;
     const int skip_msecs_cmd = 1006;
     const int output_file_cmd = 1007;
+    const int ros_topic_cmd = 1008;
 
     struct option longopts[] =
     {
@@ -125,8 +130,12 @@ int main(int argc, char **argv)
         {"output-file", required_argument, 0, output_file_cmd},
         {"skip", required_argument, 0, skip_cmd},
         {"skip-msecs", required_argument, 0, skip_msecs_cmd},
+        {"ros-topic", required_argument, 0, ros_topic_cmd},
         {0, 0, 0, 0}
     };
+
+    // Stores the topic the image data should be loaded from.
+    string ros_topic("");
 
     int index = 0;
     int c;
@@ -187,6 +196,9 @@ int main(int argc, char **argv)
             case with_rotation_cmd:
                 cmt.consensus.estimate_rotation = true;
                 break;
+            case ros_topic_cmd:
+            	ros_topic = string(optarg);
+           		break;
             case '?':
                 return 1;
         }
@@ -216,11 +228,17 @@ int main(int argc, char **argv)
     FILELog::ReportingLevel() = verbose_flag ? logDEBUG : logINFO;
     Output2FILE::Stream() = stdout; //Log to stdout
 
+    // ROS NODE SETUP
+
+    ros::init(argc, argv, "cmt_node");
+
+    ros::start();
+
     //Create window
     namedWindow(WIN_NAME);
 
-
-    ImageStream cap;
+    // Create an Image Stream with the ros_topic (if empty will default to webcam).
+    ImageStream cap(ros_topic);
     //VideoCapture cap;
 
     bool show_preview = true;
@@ -256,12 +274,17 @@ int main(int argc, char **argv)
     if(!cap.isOpened())
     {
         cerr << "Unable to open video capture." << endl;
+
+        ros::shutdown();
         return -1;
     }
 
     //Show preview until key is pressed
-    while (show_preview)
+    while (show_preview && ros::ok())
     {
+
+        ros::spinOnce();
+
         Mat preview;
         cap >> preview;
 
@@ -272,6 +295,11 @@ int main(int argc, char **argv)
         if (k != -1) {
             show_preview = false;
         }
+    }
+
+    if (!ros::ok()) {
+        ros::shutdown();
+        return 0;
     }
 
     //Get initial image
@@ -315,8 +343,10 @@ int main(int argc, char **argv)
     }
 
     //Main loop
-    while (true)
+    while (ros::ok())
     {
+        ros::spinOnce();
+
         frame++;
 
         Mat im;
@@ -359,5 +389,6 @@ int main(int argc, char **argv)
     //Close output file.
     if (output_flag) output_file.close();
 
+    ros::shutdown();
     return 0;
 }

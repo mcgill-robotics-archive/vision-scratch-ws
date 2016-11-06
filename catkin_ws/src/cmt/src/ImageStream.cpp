@@ -1,34 +1,50 @@
 
 #include "ImageStream.h"
 
-ImageStream::ImageStream(std::string ros_topic) {
+using std::string;
+
+ImageStream::ImageStream(string ros_topic)
+	: ros_topic(ros_topic)
+{
 	
 	// Set source enumeration to the appropriate source depending on whether a ros_topic is provided.
 	source = ros_topic.length() > 0 ? Topic : Video;
+
+	if (source == Topic) {
+		// Initialize the Ros Capturer
+		ros_cap = unique_ptr<RosCapture>(new RosCapture());
+	} else {
+		video = unique_ptr<VideoCapture>(new VideoCapture());
+	}
 
 }
 
 
 double ImageStream::get(int arg) {
-	return video.get(arg);
+	if (source != Video)
+		return 0.0;
+	return video->get(arg);
 }
 void ImageStream::set(int arg, double val) {
-	video.set(arg, val);
+	if (source == Video)
+		video->set(arg, val);
 }
 
 void ImageStream::open(int arg) {
 
 	// arg defaults to 0 (selects the default image capture device on the machine).
 	if (source == Video) {
-		video.open(arg);
+		video->open(arg);
+	} else {
+		ros_cap->open(ros_topic);
 	}
 
 }
 
-void ImageStream::open(std::string video_path) {
+void ImageStream::open(string video_path) {
 
 	if (source == Video) {
-		video.open(video_path);
+		video->open(video_path);
 	}
 	
 }
@@ -36,22 +52,25 @@ void ImageStream::open(std::string video_path) {
 bool ImageStream::isOpened() {
 
 	if (source == Video) {
-		return video.isOpened();
+		return video->isOpened();
+	} else {
+		return ros_cap->isOpened();
 	}
 
 	return false;
 }
 
-cv::Mat ImageStream::getImage() {
+const cv::Mat &ImageStream::getImage() {
 
-	cv::Mat image;
 	if (source == Video) {
-
-		video >> image;
-
+		*video >> prev_frame;
+	} else {
+		cv::Mat img = ros_cap->dequeueImage();
+		if (!img.empty())
+			prev_frame = img;
 	}
 
-	return image;
+	return prev_frame;
 
 }
 

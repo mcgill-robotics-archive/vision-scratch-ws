@@ -155,18 +155,25 @@ file( GLOB CMT_HEADERS
     src/logging/*.h
     src/cv_bridge/*.h)
 
+# Add executable nodes
 add_executable(cmt_node ${CMT_SRC} ${CMT_HEADERS})
+add_executable(cmt_webcam src/test/video_publisher.cpp src/cv_bridge/cv_bridge.cpp src/cv_bridge/cv_bridge.h)
 
-target_link_libraries(cmt_node ${OpenCV_LIBS})
+## Specify libraries to link a library or executable target against
+target_link_libraries(cmt_node
+   ${catkin_LIBRARIES}
+   ${OpenCV_LIBS}
+)
+target_link_libraries(cmt_webcam 
+	${catkin_LIBRARIES}
+	${OpenCV_LIBS}
+)
+
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(cmt_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-## Specify libraries to link a library or executable target against
-target_link_libraries(cmt_node
-   ${catkin_LIBRARIES}
-)
 
 #############
 ## Install ##

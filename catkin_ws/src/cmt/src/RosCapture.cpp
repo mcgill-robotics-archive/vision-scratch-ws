@@ -29,6 +29,8 @@ void RosCapture::imageCallback(const sensor_msgs::ImageConstPtr &msg) {
 		return;
 	}
 
+	enqueueImage(cv_ptr->image);
+
 }
 
 void RosCapture::open(string ros_topic) {

@@ -288,6 +288,9 @@ int main(int argc, char **argv)
         Mat preview;
         cap >> preview;
 
+        if (preview.empty())
+            continue;
+
         screenLog(preview, "Press a key to start selecting an object.");
         imshow(WIN_NAME, preview);
 

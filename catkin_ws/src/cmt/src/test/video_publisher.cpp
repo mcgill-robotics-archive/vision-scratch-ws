@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
 		return 0;
 	}
 
-	ros::init(argc, argv, "/cmt_webcam");
+	ros::init(argc, argv, "cmt_webcam");
 
 	ros::NodeHandle handle;
 	image_transport::ImageTransport transport(handle);
